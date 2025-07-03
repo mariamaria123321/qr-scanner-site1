@@ -14,10 +14,11 @@
     body { font-family:'Montserrat',sans-serif; margin:0; padding:0; background:#2f2c2b; color:#fff; text-align:center; }
     #home-screen,#scanner-screen { display:none; padding:40px 20px; }
     #home-screen { display:block; }
+    img#logo { max-width:90%; height:auto; margin-bottom:30px; }
     button { padding:14px 28px; font-size:1.2em; background:#f2b828; color:#000; border:none; border-radius:8px; margin:10px; cursor:pointer; }
     button:hover { background:#e0a519; }
     #reader { width:100%; max-width:400px; margin:20px auto; }
-    #result { margin-top:20px; font-size:1.2em; }
+    #result { margin-top:20px; font-size:1.2em; white-space: pre-wrap; }
     #scan-again-btn { display:none; background:#444; color:#fff; }
     #back-btn { display:inline-block; background:transparent; color:#bbb; font-size:1em; margin-top:30px; }
     #back-btn:hover { text-decoration:underline; }
@@ -29,7 +30,7 @@
   <div id="home-screen">
     <img id="logo"
          src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
-         alt="NATA QR Logo" style="max-width:90%;margin-bottom:30px;"><br>
+         alt="NATA QR Logo"><br>
     <button onclick="startScanner()">Scan QR Code</button>
   </div>
 
@@ -50,27 +51,27 @@
     const backBtn    = document.getElementById('back-btn');
     const qrScanner  = new Html5Qrcode('reader');
 
-    function sendToSheets(data) {
+    function sendToSheets(qrData) {
       fetch(proxyURL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qrData: data })
+        body: JSON.stringify({ qrData })
       })
       .then(r => r.json())
       .then(json => {
         // 1) Duplicate always first
         if (json.status === 'duplicate') {
-          resultEl.innerText = json.belongs
-            ? `QR code already redeemed. Reward: ${json.reward}`
+          resultEl.innerText = (json.inList === 'In List')
+            ? `QR code already redeemed.\nReward: ${json.reward}`
             : 'QR code already scanned.';
         }
         // 2) Not in list
-        else if (!json.belongs) {
+        else if (json.inList === 'Not in List') {
           resultEl.innerText = 'QR code not valid.';
         }
         // 3) First‐time good scan
         else {
-          resultEl.innerText = `Scanned: ${data}\nReward: ${json.reward}`;
+          resultEl.innerText = `Scanned: ${qrData}\nReward: ${json.reward}`;
         }
       })
       .catch(err => {
@@ -93,11 +94,12 @@
       qrScanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: 300 },
-        qrCode => {
-          qrScanner.stop();
-          sendToSheets(qrCode);
+        qrCodeMessage => {
+          qrScanner.stop().then(() => sendToSheets(qrCodeMessage));
         },
-        _ => {}
+        _error => {
+          // ignore scan errors
+        }
       );
     }
 
