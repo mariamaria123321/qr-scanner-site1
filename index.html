@@ -63,16 +63,23 @@
     function sendToSheets(data) {
       fetch(proxyURL, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ qrData: data })
       })
       .then(r => r.json())
       .then(json => {
-        if (!json.belongs) {
+        // 1) Duplicate always overrides everything
+        if (json.status === 'duplicate') {
+          resultEl.innerText = json.belongs
+            ? `QR code already redeemed. Reward: ${json.reward}`
+            : 'QR code already scanned.';
+        }
+        // 2) Not in any master list
+        else if (!json.belongs) {
           resultEl.innerText = 'QR code not valid.';
-        } else if (json.status === 'duplicate') {
-          resultEl.innerText = `Already redeemed. Reward: ${json.reward}`;
-        } else {
+        }
+        // 3) First-time, in-list scan
+        else {
           resultEl.innerText = `Scanned: ${data}\nReward: ${json.reward}`;
         }
       })
@@ -96,9 +103,9 @@
       qrScanner.start(
         { facingMode:'environment' },
         { fps:10, qrbox:300 },
-        qrCode => {
+        qrCodeMessage => {
           qrScanner.stop();
-          sendToSheets(qrCode);
+          sendToSheets(qrCodeMessage);
         },
         _ => {}
       );
