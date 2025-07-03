@@ -1,10 +1,9 @@
 // netlify/functions/proxy-qr.js
 
-// Your Apps Script Web App URL:
+// ← replace this with your Apps Script exec URL:
 const AS_URL = 'https://script.google.com/macros/s/AKfycbz-ePNtU2s_3M_cQwiyPlyYXZWU_5PDQOZ7uKSymPcd-srbmYJh007I_BPnKFTPUmQf/exec';
 
-exports.handler = async (event, context) => {
-  // Only accept POST
+exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -15,16 +14,14 @@ exports.handler = async (event, context) => {
       body: 'Method Not Allowed'
     };
   }
-
   try {
-    // Forward the request body to your Apps Script
+    // forward the JSON body to Apps Script
     const resp = await fetch(AS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: event.body
     });
     const text = await resp.text();
-
     return {
       statusCode: resp.status,
       headers: {
@@ -33,9 +30,7 @@ exports.handler = async (event, context) => {
       },
       body: text
     };
-
   } catch (err) {
-    // On error, return JSON
     return {
       statusCode: 500,
       headers: { 'Access-Control-Allow-Origin': '*' },
