@@ -5,81 +5,111 @@
   <title>NATA QR Scanner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2f2c2b">
+
+  <!-- html5-qrcode & font -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
+
   <style>
     body { font-family:'Montserrat',sans-serif; margin:0; padding:0; background:#2f2c2b; color:#fff; text-align:center; }
-    #home,#scan { padding:40px; }
-    #scan { display:none; }
-    button { padding:14px 28px; font-size:1.2em; background:#f2b828; color:#000; border:none; border-radius:8px; cursor:pointer; margin:10px; }
+    #home-screen,#scanner-screen { display:none; padding:40px 20px; }
+    #home-screen { display:block; }
+    img#logo { max-width:90%; height:auto; margin-bottom:30px; }
+    button { padding:14px 28px; font-size:1.2em; background:#f2b828; color:#000; border:none; border-radius:8px; margin:10px; cursor:pointer; }
     button:hover { background:#e0a519; }
-    #reader { width:100%;max-width:400px;margin:20px auto; }
-    #result { margin-top:20px;font-size:1.2em; }
+    #reader { width:100%; max-width:400px; margin:20px auto; }
+    #result { margin-top:20px; font-size:1.2em; white-space: pre-wrap; text-align: left; display: inline-block; }
+    #scan-again-btn { display:none; background:#444; color:#fff; }
+    #back-btn { display:inline-block; background:transparent; color:#bbb; font-size:1em; margin-top:30px; }
+    #back-btn:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
-  <div id="home">
-    <img src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
-         alt="NATA QR Logo" style="max-width:90%;margin-bottom:30px;"><br>
-    <button onclick="start()">Scan QR Code</button>
+
+  <!-- Home Screen -->
+  <div id="home-screen">
+    <img id="logo"
+         src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
+         alt="NATA QR Logo"><br>
+    <button onclick="startScanner()">Scan QR Code</button>
   </div>
 
-  <div id="scan">
+  <!-- Scanner Screen -->
+  <div id="scanner-screen">
     <div id="reader"></div>
-    <p id="result"></p>
-    <button onclick="restart()">Scan Again</button>
-    <button onclick="back()">Home</button>
+    <div id="result"></div>
+    <button id="scan-again-btn" onclick="restartScanner()">Scan Again</button><br>
+    <button id="back-btn" onclick="goBack()">Back to Home</button>
   </div>
 
   <script>
-    const proxyURL = '/.netlify/functions/proxy-qr';
-    let scanner;
+    const proxyURL   = '/.netlify/functions/proxy-qr';
+    const homeScreen = document.getElementById('home-screen');
+    const scanner    = document.getElementById('scanner-screen');
+    const resultEl   = document.getElementById('result');
+    const scanBtn    = document.getElementById('scan-again-btn');
+    const backBtn    = document.getElementById('back-btn');
+    const qrScanner  = new Html5Qrcode('reader');
 
-    function start() {
-      document.getElementById('home').style.display = 'none';
-      document.getElementById('scan').style.display = 'block';
-      document.getElementById('result').innerText = '';
-      scanner = new Html5Qrcode('reader');
-      scanner.start(
-        { facingMode: 'environment' }, 
-        { fps: 10, qrbox: 300 },
-        qr => {
-          scanner.stop().then(() => send(qr));
-        },
-        _ => {}
-      );
-    }
-
-    function send(qr) {
+    function sendToSheets(qrData) {
       fetch(proxyURL, {
         method: 'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ qrData: qr })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qrData })
       })
       .then(r => r.json())
       .then(json => {
-        if (json.status === 'ok') {
-          document.getElementById('result').innerText = `Scanned: ${qr}`;
-        } else {
-          document.getElementById('result').innerText = `Error: ${json.message || 'unknown'}`;
-        }
+        // Display exactly columns F/G/H values
+        resultEl.innerText =
+          `In List: ${json.inList}\n` +
+          `Status : ${json.status}\n` +
+          `Reward : ${json.reward}`;
       })
-      .catch(() => {
-        document.getElementById('result').innerText = 'Network/server error.';
+      .catch(err => {
+        console.error(err);
+        resultEl.innerText = 'Network/server error.';
+      })
+      .finally(() => {
+        scanBtn.style.display = 'inline-block';
+        backBtn.style.display = 'none';
       });
     }
 
-    function restart() {
-      document.getElementById('result').innerText = '';
-      start();
+    function startScanner() {
+      homeScreen.style.display    = 'none';
+      scanner.style.display       = 'block';
+      resultEl.innerText          = '';
+      scanBtn.style.display       = 'none';
+      backBtn.style.display       = 'inline-block';
+
+      qrScanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: 300 },
+        qrCode => {
+          qrScanner.stop().then(() => sendToSheets(qrCode));
+        },
+        _error => {
+          // ignore scan-errors
+        }
+      );
     }
 
-    function back() {
-      scanner.stop().then(() => {
-        document.getElementById('scan').style.display = 'none';
-        document.getElementById('home').style.display = 'block';
+    function restartScanner() {
+      resultEl.innerText    = '';
+      scanBtn.style.display = 'none';
+      backBtn.style.display = 'inline-block';
+      startScanner();
+    }
+
+    function goBack() {
+      qrScanner.stop().then(() => {
+        scanner.style.display    = 'none';
+        homeScreen.style.display = 'block';
+        resultEl.innerText       = '';
       });
     }
   </script>
 </body>
+</html>
+
 </html>
