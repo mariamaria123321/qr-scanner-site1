@@ -10,25 +10,40 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
 
+  <!-- PWA manifest (if you’re using it) -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- iOS home-screen icon & title -->
+  <link rel="apple-touch-icon" sizes="180x180"
+        href="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NATA QR">
+
   <style>
-    body { font-family:'Montserrat',sans-serif;margin:0;padding:0;background:#2f2c2b;color:#fff;text-align:center; }
-    #home-screen,#scanner-screen { display:none;padding:40px 20px; }
+    body { font-family:'Montserrat',sans-serif; margin:0; padding:0; background:#2f2c2b; color:#fff; text-align:center; }
+    #home-screen,#scanner-screen { display:none; padding:40px 20px; }
     #home-screen { display:block; }
-    button { padding:14px 28px;font-size:1.2em;background:#f2b828;color:#000;border:none;border-radius:8px;margin:10px;cursor:pointer; }
+    img#logo { max-width:90%; height:auto; margin-bottom:30px; }
+    button { padding:14px 28px; font-size:1.2em; background:#f2b828; color:#000; border:none; border-radius:8px; margin:10px; cursor:pointer; }
     button:hover { background:#e0a519; }
-    #reader { width:100%;max-width:400px;margin:20px auto; }
-    #result { margin-top:20px;font-size:1.2em; }
-    #scan-again-btn { display:none;background:#444;color:#fff; }
-    #back-btn { display:inline-block;background:transparent;color:#bbb;font-size:1em;margin-top:30px; }
+    #reader { width:100%; max-width:400px; margin:20px auto; }
+    #result { margin-top:20px; font-size:1.2em; }
+    #scan-again-btn { display:none; background:#444; color:#fff; }
+    #back-btn { display:inline-block; background:transparent; color:#bbb; font-size:1em; margin-top:30px; }
     #back-btn:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
 
+  <!-- Home Screen -->
   <div id="home-screen">
+    <img id="logo"
+         src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
+         alt="NATA QR Logo"><br>
     <button onclick="startScanner()">Scan QR Code</button>
   </div>
 
+  <!-- Scanner Screen -->
   <div id="scanner-screen">
     <div id="reader"></div>
     <p id="result"></p>
