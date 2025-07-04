@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2f2c2b">
 
-  <!-- html5-qrcode & font -->
   <script src="https://unpkg.com/html5-qrcode"></script>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
 
@@ -26,15 +25,13 @@
 </head>
 <body>
 
-  <!-- Home Screen -->
   <div id="home-screen">
     <img id="logo"
-         src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
-         alt="NATA QR Logo"><br>
+             src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
+             alt="NATA QR Logo"><br>
     <button onclick="startScanner()">Scan QR Code</button>
   </div>
 
-  <!-- Scanner Screen -->
   <div id="scanner-screen">
     <div id="reader"></div>
     <div id="result"></div>
@@ -57,17 +54,21 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ qrData })
       })
-      .then(r => r.json())
+      .then(r => {
+          if (!r.ok) { // Check for HTTP errors (e.g., 404, 500)
+              return r.text().then(text => { throw new Error(`Server error (${r.status}): ${text}`); });
+          }
+          return r.json();
+      })
       .then(json => {
-        // Display exactly columns F/G/H values
+        // Display the actual properties returned by your Apps Script
         resultEl.innerText =
-          `In List: ${json.inList}\n` +
-          `Status : ${json.status}\n` +
-          `Reward : ${json.reward}`;
+          `In List: ${json.validation}\n` + // Now correctly uses 'validation' from Apps Script
+          `Status : ${json.status}`;        // Removed the 'Reward' line as per your request
       })
       .catch(err => {
-        console.error(err);
-        resultEl.innerText = 'Network/server error.';
+        console.error("Error sending to sheets:", err); // Log the full error to console
+        resultEl.innerText = `Error: ${err.message || 'Network/server error.'}`; // Display a user-friendly error
       })
       .finally(() => {
         scanBtn.style.display = 'inline-block';
@@ -110,6 +111,4 @@
     }
   </script>
 </body>
-</html>
-
 </html>
