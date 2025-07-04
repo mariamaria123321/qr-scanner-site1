@@ -23,8 +23,8 @@
     }
 
     #home-screen, #scanner-screen {
-      display: none; /* Hidden by default */
-      padding: 20px; /* Reduced padding for more vertical space */
+      display: none; /* Hidden by default; JS will control visibility */
+      padding: 20px;
       flex-grow: 1; /* Allow these sections to grow and take available space */
       display: flex; /* Flex container for its children */
       flex-direction: column; /* Stack children vertically */
@@ -32,12 +32,14 @@
     }
 
     #home-screen {
-      display: flex; /* Default display for the home screen */
+      display: flex; /* Default display for the home screen (initially visible) */
       justify-content: center; /* Vertically center content on home screen */
     }
 
     #scanner-screen {
-      justify-content: space-evenly; /* Distribute space evenly among items (logo, reader, results) */
+      justify-content: center; /* Vertically center all content (logo, reader, results) */
+      padding-top: 40px; /* More padding at the top for overall centering */
+      padding-bottom: 20px; /* Padding at the bottom */
     }
 
     img#logo { /* Applies to the main logo on home screen */
@@ -47,10 +49,9 @@
     }
 
     img#logo-small { /* Applies to the smaller logo on scanner screen */
-      max-width: 120px; /* Slightly smaller for scanner screen */
+      max-width: 120px;
       height: auto;
-      margin-top: 10px; /* Keep it a bit from the top edge */
-      margin-bottom: 20px; /* Space below the small logo */
+      margin-bottom: 30px; /* Space below the small logo */
     }
 
     button {
@@ -71,16 +72,20 @@
     #reader {
       width: 100%;
       max-width: 400px;
-      /* margin is now handled by flexbox space distribution */
+      margin-bottom: 30px; /* Space below the reader */
+      display: none; /* IMPORTANT: Hide by default, show only when scanning */
+      /* HTML5-qrcode will render the video feed inside this div */
     }
 
     #result-buttons-container { /* Container for result text and buttons on scanned screen */
-      flex-grow: 0;
+      flex-grow: 0; /* Prevents this container from pushing elements too far */
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin-top: 20px;
+      justify-content: center; /* Center results and buttons within this container */
       width: 100%;
+      /* Adjusted margin for vertical centering relative to logo */
+      /* No margin-top here, let justify-content: center on #scanner-screen handle spacing */
     }
 
     #result {
@@ -100,12 +105,11 @@
       color: #fff;
     }
 
-    /* Important: By default, back-btn is hidden in the CSS */
     #back-btn {
       background: transparent;
       color: #bbb;
       font-size: 1em;
-      display: none; /* Hide by default in CSS */
+      /* By default hidden; JS will control visibility */
     }
 
     #back-btn:hover {
@@ -126,8 +130,8 @@
     <img id="logo-small"
              src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
              alt="NATA QR Logo">
-    <div id="reader"></div>
-    <div id="result-buttons-container"> <div id="result"></div>
+    <div id="reader"></div> <div id="result-buttons-container">
+      <div id="result"></div>
       <button id="scan-again-btn" onclick="restartScanner()">Scan Again</button>
       <button id="back-btn" onclick="goBack()">Back to Home</button>
     </div>
@@ -137,9 +141,10 @@
     const proxyURL   = '/.netlify/functions/proxy-qr';
     const homeScreen = document.getElementById('home-screen');
     const scanner    = document.getElementById('scanner-screen');
+    const reader     = document.getElementById('reader'); // Get reference to the reader div
     const resultEl   = document.getElementById('result');
     const scanBtn    = document.getElementById('scan-again-btn');
-    const backBtn    = document.getElementById('back-btn'); // Get reference to the back button
+    const backBtn    = document.getElementById('back-btn');
     const qrScanner  = new Html5Qrcode('reader');
 
     function sendToSheets(qrData) {
@@ -149,59 +154,65 @@
         body: JSON.stringify({ qrData })
       })
       .then(r => {
-          if (!r.ok) { // Check for HTTP errors (e.g., 404, 500)
+          if (!r.ok) {
               return r.text().then(text => { throw new Error(`Server error (${r.status}): ${text}`); });
           }
           return r.json();
       })
       .then(json => {
-        // Display the properties with new labels
         resultEl.innerText =
-          `Prémio: ${json.validation}\n` + // Changed from 'In List' to 'Prémio'
-          `Pode usar o código: ${json.status}`; // Changed from 'Status' to 'Pode usar o código'
+          `Prémio: ${json.validation}\n` +
+          `Pode usar o código: ${json.status}`;
       })
       .catch(err => {
-        console.error("Error sending to sheets:", err); // Log the full error to console
-        resultEl.innerText = `Erro: ${err.message || 'Erro de rede/servidor.'}`; // Display a user-friendly error in Portuguese
+        console.error("Error sending to sheets:", err);
+        resultEl.innerText = `Erro: ${err.message || 'Erro de rede/servidor.'}`;
       })
       .finally(() => {
-        scanBtn.style.display = 'inline-block'; // Always show Scan Again button
-        backBtn.style.display = 'none'; // IMPORTANT: Hide Back to Home when results are displayed
+        qrScanner.stop(); // Ensure scanner is stopped
+        reader.style.display = 'none'; // IMPORTANT: Hide reader when scan is complete and results display
+        scanBtn.style.display = 'inline-block'; // Show Scan Again button
+        backBtn.style.display = 'none'; // IMPORTANT: Hide Back to Home button on results screen
       });
     }
 
     function startScanner() {
-      homeScreen.style.display    = 'none';
+      homeScreen.style.display    = 'none'; // Hide home screen
       scanner.style.display       = 'flex'; // Show scanner screen
       resultEl.innerText          = ''; // Clear previous results
       scanBtn.style.display       = 'none'; // Hide Scan Again initially
       backBtn.style.display       = 'inline-block'; // IMPORTANT: Show Back to Home when actively scanning
+      reader.style.display        = 'block'; // IMPORTANT: Show reader when scanning starts
 
       qrScanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: 300 },
         qrCode => {
-          qrScanner.stop().then(() => sendToSheets(qrCode));
+          // IMPORTANT: Hide reader immediately when QR code is found, before sending to sheets
+          reader.style.display = 'none';
+          qrScanner.stop().then(() => sendToSheets(qrCode)); // Stop and then process
         },
         _error => {
-          // ignore scan-errors
+          // ignore scan-errors (e.g., if no QR code found in frame)
         }
       );
     }
 
     function restartScanner() {
       resultEl.innerText    = '';
-      scanBtn.style.display = 'none';
-      backBtn.style.display = 'inline-block'; // IMPORTANT: Show Back to Home when restarting scan
-      startScanner();
+      scanBtn.style.display = 'none'; // Hide Scan Again
+      backBtn.style.display = 'inline-block'; // Show Back to Home
+      reader.style.display  = 'block'; // Show reader
+      startScanner(); // Restart the scanner (this will also hide results)
     }
 
     function goBack() {
-      qrScanner.stop().then(() => {
-        scanner.style.display    = 'none';
+      qrScanner.stop().then(() => { // Stop scanner if active
+        scanner.style.display    = 'none'; // Hide scanner screen
         homeScreen.style.display = 'flex'; // Show home screen
-        resultEl.innerText       = ''; // Clear results if navigating back
-        backBtn.style.display    = 'none'; // Ensure back button is hidden when returning to home screen
+        resultEl.innerText       = ''; // Clear results
+        reader.style.display     = 'none'; // Ensure reader is hidden when leaving scanner screen
+        backBtn.style.display    = 'none'; // Ensure back button is hidden when on home screen
       });
     }
   </script>
