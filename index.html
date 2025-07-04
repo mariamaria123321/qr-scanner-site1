@@ -40,8 +40,7 @@
 
     /* Scanner Screen specific styles (parent container for scanning and results UI) */
     #scanner-screen {
-      /* Adjusted for top logo + centered content */
-      justify-content: flex-start; /* Start stacking from the top */
+      justify-content: space-between; /* Adjusted to push top logo and main content area to ends */
       padding-top: 40px; /* Adjust overall vertical positioning */
       padding-bottom: 20px;
     }
@@ -53,12 +52,19 @@
       margin-bottom: 30px;
     }
 
-    img#logo-small-top { /* Small logo for scanner/results screens - now always at top */
+    img#logo-small-top, img#logo-small-bottom { /* Small logos for scanner/results screens */
       max-width: 120px;
       height: auto;
-      margin-bottom: 30px; /* Space below this logo */
       display: none; /* IMPORTANT: Hidden by default; JS will control visibility */
     }
+    img#logo-small-top {
+      margin-bottom: 30px; /* Space below this logo on scanning screen */
+    }
+    img#logo-small-bottom {
+      margin-top: 30px; /* Space above this logo on results screen */
+      margin-bottom: 20px; /* Add some margin at the bottom of the screen */
+    }
+
 
     /* Button styles */
     button {
@@ -98,7 +104,7 @@
       flex-direction: column;
       align-items: center;
       flex-grow: 1; /* Allows this container to take available space */
-      justify-content: center; /* Vertically center its contents (results area) */
+      justify-content: space-between; /* Pushes content and logo to top/bottom within this container */
       width: 100%;
     }
 
@@ -109,6 +115,7 @@
       align-items: center;
       justify-content: center; /* Vertically center result and scan again button */
       width: 100%;
+      flex-grow: 1; /* Allow this to take space and push the bottom logo down */
     }
 
     #result {
@@ -163,6 +170,9 @@
         <div id="result"></div>
         <button id="scan-again-btn" onclick="restartScanner()">Scan Again</button>
       </div>
+      <img id="logo-small-bottom"
+               src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
+               alt="NATA QR Logo">
     </div>
   </div>
 
@@ -171,6 +181,7 @@
     const homeScreen            = document.getElementById('home-screen');
     const scanner               = document.getElementById('scanner-screen');
     const logoSmallTop          = document.getElementById('logo-small-top'); // Ref for top logo
+    const logoSmallBottom       = document.getElementById('logo-small-bottom'); // Ref for bottom logo
     const qrScannerActiveArea   = document.getElementById('qr-scanner-active-area');
     const scannedLayoutContainer = document.getElementById('scanned-layout-container');
     const reader                = document.getElementById('reader');
@@ -202,11 +213,12 @@
       })
       .finally(() => {
         // After scan processed: hide scanner UI, show results UI
+        logoSmallTop.style.display       = 'none'; // Hide top logo
         qrScannerActiveArea.style.display = 'none'; // Hide active scanner area
         reader.style.display              = 'none'; // Ensure reader is hidden
         
         scannedLayoutContainer.style.display = 'flex'; // Show results container
-        // logoSmallTop remains visible (it's always at the top of scanner-screen)
+        logoSmallBottom.style.display      = 'block'; // Show bottom logo for results screen
       });
     }
 
@@ -222,6 +234,7 @@
 
       // Ensure results UI is hidden
       scannedLayoutContainer.style.display = 'none'; // Hide results container
+      logoSmallBottom.style.display      = 'none'; // Hide bottom logo
       resultEl.innerText               = ''; // Clear previous results
 
       qrScanner.start(
@@ -245,6 +258,7 @@
       // Transition from Scanned Results back to Active Scanning
       resultEl.innerText               = ''; // Clear results
       scannedLayoutContainer.style.display = 'none'; // Hide results container
+      logoSmallBottom.style.display      = 'none'; // Hide bottom logo
 
       // Set up for active scanning UI again
       logoSmallTop.style.display       = 'block'; // Show top logo
@@ -262,6 +276,7 @@
         scannedLayoutContainer.style.display = 'none';
         reader.style.display             = 'none';
         logoSmallTop.style.display       = 'none'; // Ensure top logo is hidden when going to home
+        logoSmallBottom.style.display      = 'none'; // Ensure bottom logo is hidden
         resultEl.innerText               = ''; // Clear results
 
         // Show Home Screen
