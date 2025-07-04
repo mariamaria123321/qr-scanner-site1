@@ -22,9 +22,9 @@
       min-height: 100vh; /* Ensure body takes full viewport height */
     }
 
-    /* Base styles for both main screens, hidden by default */
+    /* Base styles for all main screen containers */
     #home-screen, #scanner-screen {
-      display: none;
+      display: none; /* Hidden by default; JS will control visibility */
       padding: 20px;
       flex-grow: 1;
       display: flex;
@@ -34,13 +34,13 @@
 
     /* Home Screen specific styles */
     #home-screen {
-      display: flex; /* Default display for the home screen (initially visible) */
+      display: flex; /* IMPORTANT: This makes the home screen visible on initial load */
       justify-content: center; /* Vertically center content */
     }
 
-    /* Scanner Screen specific styles (parent container for scanner and results) */
+    /* Scanner Screen specific styles (parent container for scanning and results UI) */
     #scanner-screen {
-      justify-content: center; /* Vertically center content */
+      justify-content: center; /* Vertically center content within scanner screen */
       padding-top: 40px; /* Adjust overall vertical positioning */
       padding-bottom: 20px;
     }
@@ -52,10 +52,16 @@
       margin-bottom: 30px;
     }
 
-    img#logo-small { /* Smaller logo on scanner screen */
+    img#logo-small-top, img#logo-small-bottom { /* Small logos for scanner/results screens */
       max-width: 120px;
       height: auto;
-      margin-bottom: 30px; /* Space below the small logo */
+      display: none; /* IMPORTANT: Hidden by default; JS will control visibility */
+    }
+    img#logo-small-top {
+      margin-bottom: 30px; /* Space below this logo on scanning screen */
+    }
+    img#logo-small-bottom {
+      margin-top: 30px; /* Space above this logo on results screen */
     }
 
     /* Button styles */
@@ -73,9 +79,9 @@
       background: #e0a519;
     }
 
-    /* QR Scanner Active Area styles */
+    /* QR Scanner Active Area styles (for when camera is live) */
     #qr-scanner-active-area {
-      display: flex; /* Display as flex column */
+      display: none; /* IMPORTANT: Hidden by default; JS will control visibility */
       flex-direction: column;
       align-items: center;
       flex-grow: 1; /* Allows this area to take available space */
@@ -87,18 +93,26 @@
       width: 100%;
       max-width: 400px;
       margin-bottom: 30px; /* Space below reader */
-      display: none; /* IMPORTANT: Hidden by default, shown by JS when scanning */
+      display: none; /* IMPORTANT: Hidden by default; JS will control visibility */
     }
 
-    /* Scan Results Area styles */
-    #scan-results-area {
-      display: flex; /* Display as flex column */
+    /* Scanned Layout Container styles (for when results are shown) */
+    #scanned-layout-container {
+      display: none; /* IMPORTANT: Hidden by default; JS will control visibility */
       flex-direction: column;
       align-items: center;
-      flex-grow: 1; /* Allows this area to take available space */
+      flex-grow: 1; /* Allows this container to take available space */
+      justify-content: center; /* Vertically center its contents (results area and bottom logo) */
+      width: 100%;
+    }
+
+    /* Styles for the content *within* the results area (text + scan again button) */
+    #scan-results-area-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: center; /* Vertically center result and scan again button */
       width: 100%;
-      display: none; /* IMPORTANT: Hidden by default, shown by JS when results are ready */
     }
 
     #result {
@@ -124,7 +138,7 @@
       color: #bbb;
       font-size: 1em;
       margin-top: 20px; /* Space above back button */
-      /* No explicit display here, it's controlled by parent #qr-scanner-active-area's display */
+      /* No explicit display here, its visibility is controlled by its parent #qr-scanner-active-area's display */
     }
     #back-btn:hover {
       text-decoration: underline;
@@ -141,7 +155,7 @@
   </div>
 
   <div id="scanner-screen">
-    <img id="logo-small"
+    <img id="logo-small-top"
              src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
              alt="NATA QR Logo">
 
@@ -149,23 +163,30 @@
       <div id="reader"></div> <button id="back-btn" onclick="goBack()">Back to Home</button>
     </div>
 
-    <div id="scan-results-area">
-      <div id="result"></div>
-      <button id="scan-again-btn" onclick="restartScanner()">Scan Again</button>
+    <div id="scanned-layout-container">
+      <div id="scan-results-area-content">
+        <div id="result"></div>
+        <button id="scan-again-btn" onclick="restartScanner()">Scan Again</button>
+      </div>
+      <img id="logo-small-bottom"
+               src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
+               alt="NATA QR Logo">
     </div>
   </div>
 
   <script>
-    const proxyURL          = '/.netlify/functions/proxy-qr';
-    const homeScreen        = document.getElementById('home-screen');
-    const scanner           = document.getElementById('scanner-screen');
-    const qrScannerActiveArea = document.getElementById('qr-scanner-active-area'); // New element
-    const scanResultsArea     = document.getElementById('scan-results-area');     // New element
-    const reader            = document.getElementById('reader');
-    const resultEl          = document.getElementById('result');
-    const scanBtn           = document.getElementById('scan-again-btn');
-    const backBtn           = document.getElementById('back-btn');
-    const qrScanner         = new Html5Qrcode('reader');
+    const proxyURL              = '/.netlify/functions/proxy-qr';
+    const homeScreen            = document.getElementById('home-screen');
+    const scanner               = document.getElementById('scanner-screen');
+    const logoSmallTop          = document.getElementById('logo-small-top'); // Ref for top logo
+    const logoSmallBottom       = document.getElementById('logo-small-bottom'); // Ref for bottom logo
+    const qrScannerActiveArea   = document.getElementById('qr-scanner-active-area');
+    const scannedLayoutContainer = document.getElementById('scanned-layout-container');
+    const reader                = document.getElementById('reader');
+    const resultEl              = document.getElementById('result');
+    const scanBtn               = document.getElementById('scan-again-btn');
+    const backBtn               = document.getElementById('back-btn');
+    const qrScanner             = new Html5Qrcode('reader');
 
     function sendToSheets(qrData) {
       fetch(proxyURL, {
@@ -189,31 +210,78 @@
         resultEl.innerText = `Erro: ${err.message || 'Erro de rede/servidor.'}`;
       })
       .finally(() => {
-        qrScannerActiveArea.style.display = 'none'; // Hide scanner UI
-        scanResultsArea.style.display     = 'flex'; // Show results UI
+        // After scan processed: show results, hide scanner UI
+        logoSmallTop.style.display       = 'none'; // Hide top logo
+        qrScannerActiveArea.style.display = 'none'; // Hide scanner area
+        
+        scannedLayoutContainer.style.display = 'flex'; // Show results area
+        logoSmallBottom.style.display      = 'block'; // Show bottom logo
       });
     }
 
     function startScanner() {
-      homeScreen.style.display        = 'none'; // Hide home screen
-      scanner.style.display           = 'flex'; // Show scanner screen container
-      qrScannerActiveArea.style.display = 'flex'; // Show active scanner UI
-      scanResultsArea.style.display   = 'none'; // Hide results UI
-      
-      resultEl.innerText              = ''; // Clear previous results
-      // backBtn and scanBtn visibility now handled by their parent containers
+      // Transition from Home to Scanning Screen
+      homeScreen.style.display         = 'none';
+      scanner.style.display            = 'flex'; // Show main scanner screen container
 
-      reader.style.display            = 'block'; // Show the actual reader/camera feed
+      // Set up for active scanning UI
+      logoSmallTop.style.display       = 'block'; // Show top logo
+      qrScannerActiveArea.style.display = 'flex';  // Show active scanner area
+      reader.style.display             = 'block'; // Show camera feed
+
+      // Ensure results UI is hidden
+      scannedLayoutContainer.style.display = 'none'; // Hide results container
+      logoSmallBottom.style.display      = 'none'; // Hide bottom logo
+      resultEl.innerText               = ''; // Clear previous results
 
       qrScanner.start(
         { facingMode: 'environment' },
         { fps: 10, qrbox: 300 },
         qrCode => {
-          // Immediately hide reader and active scanner area when QR code is found
+          // Immediately hide camera and active scanner UI once QR is found
           reader.style.display            = 'none';
           qrScannerActiveArea.style.display = 'none'; 
-          qrScanner.stop().then(() => sendToSheets(qrCode)); // Stop scanner and then process
+          
+          qrScanner.stop().then(() => sendToSheets(qrCode)); // Stop scanner and then process results
         },
+        _error => {
+          // ignore scan-errors (e.g., if no QR code found in frame)
+        }
+      );
+    }
+
+    function restartScanner() {
+      // Transition from Scanned Results back to Active Scanning
+      resultEl.innerText               = ''; // Clear results
+      scannedLayoutContainer.style.display = 'none'; // Hide results container
+      logoSmallBottom.style.display      = 'none'; // Hide bottom logo
+
+      // Set up for active scanning UI again
+      logoSmallTop.style.display       = 'block'; // Show top logo
+      qrScannerActiveArea.style.display = 'flex';  // Show active scanner area
+      reader.style.display             = 'block'; // Show camera feed
+
+      startScanner(); // Restart the scanner
+    }
+
+    function goBack() {
+      qrScanner.stop().then(() => { // Stop scanner if active
+        // Hide all scanner-related UI
+        scanner.style.display            = 'none'; 
+        qrScannerActiveArea.style.display = 'none';
+        scannedLayoutContainer.style.display = 'none';
+        reader.style.display             = 'none';
+        logoSmallTop.style.display       = 'none';
+        logoSmallBottom.style.display      = 'none';
+        resultEl.innerText               = ''; // Clear results
+
+        // Show Home Screen
+        homeScreen.style.display         = 'flex'; 
+      });
+    }
+  </script>
+</body>
+</html> },
         _error => {
           // ignore scan-errors (e.g., if no QR code found in frame)
         }
