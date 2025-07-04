@@ -23,24 +23,34 @@
     }
 
     #home-screen, #scanner-screen {
-      display: none;
-      padding: 40px 20px;
-      flex-grow: 1; /* Allow these sections to grow and push content */
+      display: none; /* Hidden by default */
+      padding: 20px; /* Reduced padding for more vertical space */
+      flex-grow: 1; /* Allow these sections to grow and take available space */
       display: flex; /* Flex container for its children */
       flex-direction: column; /* Stack children vertically */
-      justify-content: center; /* Center content vertically within screen */
       align-items: center; /* Center content horizontally within screen */
     }
 
     #home-screen {
-      display: flex; /* Default display */
+      display: flex; /* Default display for the home screen */
+      justify-content: center; /* Vertically center content on home screen */
     }
 
-    img#logo {
+    #scanner-screen {
+      justify-content: space-evenly; /* Distribute space evenly among items (logo, reader, results) */
+    }
+
+    img#logo { /* Applies to the main logo on home screen */
       max-width: 90%;
       height: auto;
-      margin-bottom: 30px;
-      margin-top: 20px; /* Add some top margin to center it better */
+      margin-bottom: 30px; /* Space below the logo */
+    }
+
+    img#logo-small { /* Applies to the smaller logo on scanner screen */
+      max-width: 120px; /* Slightly smaller for scanner screen */
+      height: auto;
+      margin-top: 10px; /* Keep it a bit from the top edge */
+      margin-bottom: 20px; /* Space below the small logo */
     }
 
     button {
@@ -61,43 +71,41 @@
     #reader {
       width: 100%;
       max-width: 400px;
-      margin: 20px auto;
+      /* margin is now handled by flexbox space distribution */
     }
 
-    #result-container { /* New container for centering results */
-      flex-grow: 1; /* Allow this container to push content down */
+    #result-buttons-container { /* Container for result text and buttons on scanned screen */
+      flex-grow: 0;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end; /* Push content to the bottom */
-      align-items: center; /* Center horizontally */
+      align-items: center;
+      margin-top: 20px;
       width: 100%;
-      padding-bottom: 50px; /* Add some padding from the bottom edge */
     }
 
     #result {
-      margin-top: 20px; /* Adjusted margin */
       font-size: 1.2em;
       white-space: pre-wrap;
       text-align: left;
       display: inline-block;
-      padding: 10px; /* Added padding for better readability */
-      background: rgba(0, 0, 0, 0.3); /* Slightly darker background for contrast */
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.3);
       border-radius: 8px;
-      min-width: 250px; /* Ensure some minimum width for the text block */
+      min-width: 250px;
+      margin-bottom: 15px; /* Space below result text */
     }
 
     #scan-again-btn {
-      display: none;
       background: #444;
       color: #fff;
     }
 
+    /* Important: By default, back-btn is hidden in the CSS */
     #back-btn {
-      display: inline-block;
       background: transparent;
       color: #bbb;
       font-size: 1em;
-      margin-top: 30px;
+      display: none; /* Hide by default in CSS */
     }
 
     #back-btn:hover {
@@ -117,9 +125,9 @@
   <div id="scanner-screen">
     <img id="logo-small"
              src="https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/3LlbgZJWVq2XsrF6zL5n/pub/IjuCDlcsAr7bKTubWUwd.png"
-             alt="NATA QR Logo"
-             style="max-width: 150px; height: auto; margin-top: 20px; margin-bottom: 20px;"> <div id="reader"></div>
-    <div id="result-container"> <div id="result"></div>
+             alt="NATA QR Logo">
+    <div id="reader"></div>
+    <div id="result-buttons-container"> <div id="result"></div>
       <button id="scan-again-btn" onclick="restartScanner()">Scan Again</button>
       <button id="back-btn" onclick="goBack()">Back to Home</button>
     </div>
@@ -131,7 +139,7 @@
     const scanner    = document.getElementById('scanner-screen');
     const resultEl   = document.getElementById('result');
     const scanBtn    = document.getElementById('scan-again-btn');
-    const backBtn    = document.getElementById('back-btn');
+    const backBtn    = document.getElementById('back-btn'); // Get reference to the back button
     const qrScanner  = new Html5Qrcode('reader');
 
     function sendToSheets(qrData) {
@@ -157,17 +165,17 @@
         resultEl.innerText = `Erro: ${err.message || 'Erro de rede/servidor.'}`; // Display a user-friendly error in Portuguese
       })
       .finally(() => {
-        scanBtn.style.display = 'inline-block';
-        backBtn.style.display = 'inline-block'; // Changed to always show back button after scan
+        scanBtn.style.display = 'inline-block'; // Always show Scan Again button
+        backBtn.style.display = 'none'; // IMPORTANT: Hide Back to Home when results are displayed
       });
     }
 
     function startScanner() {
       homeScreen.style.display    = 'none';
-      scanner.style.display       = 'flex'; // Use flex for scanner screen
-      resultEl.innerText          = '';
-      scanBtn.style.display       = 'none';
-      backBtn.style.display       = 'inline-block'; // Show back button immediately
+      scanner.style.display       = 'flex'; // Show scanner screen
+      resultEl.innerText          = ''; // Clear previous results
+      scanBtn.style.display       = 'none'; // Hide Scan Again initially
+      backBtn.style.display       = 'inline-block'; // IMPORTANT: Show Back to Home when actively scanning
 
       qrScanner.start(
         { facingMode: 'environment' },
@@ -184,15 +192,16 @@
     function restartScanner() {
       resultEl.innerText    = '';
       scanBtn.style.display = 'none';
-      backBtn.style.display = 'inline-block';
+      backBtn.style.display = 'inline-block'; // IMPORTANT: Show Back to Home when restarting scan
       startScanner();
     }
 
     function goBack() {
       qrScanner.stop().then(() => {
         scanner.style.display    = 'none';
-        homeScreen.style.display = 'flex'; // Use flex for home screen
-        resultEl.innerText       = '';
+        homeScreen.style.display = 'flex'; // Show home screen
+        resultEl.innerText       = ''; // Clear results if navigating back
+        backBtn.style.display    = 'none'; // Ensure back button is hidden when returning to home screen
       });
     }
   </script>
