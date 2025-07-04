@@ -1,7 +1,7 @@
 // netlify/functions/proxy-qr.js
 
 // ← your updated Apps Script Web App URL:
-const AS_URL = 'https://script.google.com/macros/s/AKfycbyIFrLJjHpf-LNTYvk5cCXQi5RUtorYLPBAGhhIMD5ZNFEugS2AGrTtujFW9Ue3tgPb/exec';
+const AS_URL = 'https://script.google.com/macros/s/AKfycbxx6LKIHo7K6OmWecx5-yZ6nQMXtzQAakHM25YgOnJ1fZ7h2fmpwZd2lHSmLEm4Otz85Q/exec';
 
 exports.handler = async (event) => {
   // Only accept POST
